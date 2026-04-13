@@ -1,15 +1,27 @@
 export const api = {
+  async handleResponse(res: Response) {
+    const contentType = res.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await res.json();
+    } else {
+      data = { error: await res.text() };
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Erro na requisição');
+    }
+    return data;
+  },
+
   async register(data: any) {
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Erro ao registrar');
-    }
-    return res.json();
+    return this.handleResponse(res);
   },
 
   async login(data: any) {
@@ -18,20 +30,16 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || 'Erro ao entrar');
-    }
-    return res.json();
+    return this.handleResponse(res);
   },
 
   async getMe() {
     const res = await fetch('/api/me');
-    if (!res.ok) throw new Error('Não autorizado');
-    return res.json();
+    return this.handleResponse(res);
   },
 
   async logout() {
-    await fetch('/api/logout', { method: 'POST' });
+    const res = await fetch('/api/logout', { method: 'POST' });
+    return this.handleResponse(res);
   }
 };
