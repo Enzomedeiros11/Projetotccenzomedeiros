@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid (string), name (string), email (string), role (enum: teacher, student), createdAt (timestamp)
+    //
+    // Collection: classes
+    // Fields: name (string), description (string), teacherId (string), inviteCode (string), createdAt (timestamp)
+    //
+    // Collection: assignments
+    // Fields: classId (string), title (string), description (string), dueDate (timestamp), teacherId (string)
+    //
+    // Collection: submissions
+    // Fields: assignmentId (string), studentId (string), content (string), grade (number), feedback (string), submittedAt (timestamp)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isTeacher() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'role']) &&
+             data.uid is string && data.uid.size() < 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.role in ['teacher', 'student'];
+    }
+
+    function isValidClass(data) {
+      return data.keys().hasAll(['name', 'teacherId', 'inviteCode']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.teacherId == request.auth.uid &&
+             data.inviteCode is string && data.inviteCode.size() == 6;
+    }
+
+    function isValidAssignment(data) {
+      return data.keys().hasAll(['classId', 'title', 'teacherId']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.teacherId == request.auth.uid;
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['assignmentId', 'studentId', 'content']) &&
+             data.studentId == request.auth.uid &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 10000;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role;
+    }
+
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow create: if isTeacher() && isValidClass(request.resource.data);
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid && isValidClass(request.resource.data);
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    match /assignments/{assignmentId} {
+      allow read: if isAuthenticated();
+      allow create: if isTeacher() && isValidAssignment(request.resource.data);
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid && isValidAssignment(request.resource.data);
+      allow delete: if isTeacher() && resource.data.teacherId == request.auth.uid;
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.studentId || isTeacher());
+      allow create: if isAuthenticated() && isValidSubmission(request.resource.data);
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == resource.data.studentId && isValidSubmission(request.resource.data) && !('grade' in request.resource.data)) ||
+        (isTeacher() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grade', 'feedback']))
+      );
+    }
+  }
+}
