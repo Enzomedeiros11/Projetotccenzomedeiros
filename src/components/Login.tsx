@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
@@ -31,9 +31,23 @@ const Login: React.FC = () => {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError('E-mail ou senha incorretos');
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('O login por E-mail/Senha não está ativado. Use o botão do Google abaixo ou ative-o no Firebase Console.');
+      } else {
+        setError('E-mail ou senha incorretos');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError('Erro ao entrar com Google');
     }
   };
 
@@ -41,7 +55,7 @@ const Login: React.FC = () => {
     <AuthLayout title="Bem-vindo" subtitle="Acesse sua conta para continuar">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-xl text-sm">
+          <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-xl text-sm whitespace-pre-line">
             {error}
           </div>
         )}
@@ -82,9 +96,27 @@ const Login: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
         >
           {loading ? 'Entrando...' : 'Entrar'}
+        </button>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-slate-900 px-2 text-slate-500">Ou continue com</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-3"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+          Google
         </button>
 
         <p className="text-center text-slate-400 text-sm mt-6">
