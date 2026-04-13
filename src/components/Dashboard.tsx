@@ -59,7 +59,9 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold">{profile?.name}</p>
-              <p className="text-xs text-slate-400 capitalize">{profile?.role === 'teacher' ? 'Professor' : 'Aluno'}</p>
+              <p className="text-xs text-slate-400">
+                {profile?.role === 'teacher' ? 'Professor' : 'Aluno'} • {profile?.grade} • {profile?.course}
+              </p>
             </div>
             <button 
               onClick={handleLogout}

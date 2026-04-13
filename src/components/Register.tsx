@@ -16,6 +16,8 @@ const schema = z.object({
   role: z.enum(['teacher', 'student'], {
     message: 'Selecione se você é Professor ou Aluno',
   }),
+  grade: z.string().min(1, 'Selecione o ano'),
+  course: z.string().min(1, 'Selecione o curso'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -41,12 +43,18 @@ const Register: React.FC = () => {
         name: data.name,
         email: data.email,
         role: data.role,
+        grade: data.grade,
+        course: data.course,
         createdAt: serverTimestamp(),
       });
       
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === 'auth/operation-not-allowed') {
+        setError('O provedor de E-mail/Senha não está ativado no Firebase Console. Por favor, ative-o em Authentication > Sign-in method.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,7 +64,7 @@ const Register: React.FC = () => {
     <AuthLayout title="Criar Conta" subtitle="Junte-se à nossa comunidade educacional">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-xl text-sm">
+          <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-xl text-sm whitespace-pre-line">
             {error}
           </div>
         )}
@@ -72,6 +80,39 @@ const Register: React.FC = () => {
             />
           </div>
           {errors.name && <p className="text-red-500 text-xs mt-1 ml-1">{errors.name.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Ano</label>
+            <select
+              {...register('grade')}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none"
+            >
+              <option value="" className="bg-slate-900">Selecione</option>
+              <option value="1º Ano" className="bg-slate-900">1º Ano</option>
+              <option value="2º Ano" className="bg-slate-900">2º Ano</option>
+              <option value="3º Ano" className="bg-slate-900">3º Ano</option>
+            </select>
+            {errors.grade && <p className="text-red-500 text-xs mt-1 ml-1">{errors.grade.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Curso</label>
+            <select
+              {...register('course')}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none"
+            >
+              <option value="" className="bg-slate-900">Selecione</option>
+              <option value="Informática" className="bg-slate-900">Informática</option>
+              <option value="Administração" className="bg-slate-900">Administração</option>
+              <option value="Análises Clínicas" className="bg-slate-900">Análises Clínicas</option>
+              <option value="Jurídico" className="bg-slate-900">Jurídico</option>
+              <option value="Agropecuária" className="bg-slate-900">Agropecuária</option>
+              <option value="Nutrição" className="bg-slate-900">Nutrição</option>
+            </select>
+            {errors.course && <p className="text-red-500 text-xs mt-1 ml-1">{errors.course.message}</p>}
+          </div>
         </div>
 
         <div className="space-y-1">

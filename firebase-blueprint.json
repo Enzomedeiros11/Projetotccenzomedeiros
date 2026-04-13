@@ -9,6 +9,8 @@
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "role": { "type": "string", "enum": ["teacher", "student"] },
+        "grade": { "type": "string", "enum": ["1º Ano", "2º Ano", "3º Ano"] },
+        "course": { "type": "string", "enum": ["Informática", "Administração", "Análises Clínicas", "Jurídico", "Agropecuária", "Nutrição"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "name", "email", "role"]

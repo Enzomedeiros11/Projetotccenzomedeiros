@@ -36,7 +36,9 @@ service cloud.firestore {
              data.uid is string && data.uid.size() < 128 &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
-             data.role in ['teacher', 'student'];
+             data.role in ['teacher', 'student'] &&
+             (!('grade' in data) || data.grade in ['1º Ano', '2º Ano', '3º Ano']) &&
+             (!('course' in data) || data.course in ['Informática', 'Administração', 'Análises Clínicas', 'Jurídico', 'Agropecuária', 'Nutrição']);
     }
 
     function isValidClass(data) {
