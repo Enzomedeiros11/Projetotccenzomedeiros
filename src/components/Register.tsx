@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
 import { User, Mail, Lock, GraduationCap, School } from 'lucide-react';
+import { api } from '../lib/api';
 
 const schema = z.object({
   name: z.string().min(2, 'Nome muito curto'),
@@ -35,58 +33,16 @@ const Register: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      const user = userCredential.user;
-      
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        name: data.name,
-        email: data.email,
-        role: data.role,
-        grade: data.grade,
-        course: data.course,
-        createdAt: serverTimestamp(),
-      });
-      
-      navigate('/dashboard');
-    } catch (err: any) {
-      if (err.code === 'auth/operation-not-allowed') {
-        setError('O cadastro por E-mail/Senha não está ativado. Use o botão do Google abaixo ou ative-o no Firebase Console.');
+      const user = await api.register(data);
+      if (user.role === 'teacher') {
+        navigate('/professor');
       } else {
-        setError(err.message);
+        navigate('/aluno');
       }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao criar conta');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      // Check if user already exists in Firestore
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-      
-      if (!docSnap.exists()) {
-        // If new user, we need to set default role/grade/course or redirect to a profile completion page
-        // For now, let's set defaults so they can at least enter
-        await setDoc(docRef, {
-          uid: user.uid,
-          name: user.displayName || 'Usuário Google',
-          email: user.email,
-          role: 'student', // Default
-          grade: '1º Ano', // Default
-          course: 'Informática', // Default
-          createdAt: serverTimestamp(),
-        });
-      }
-      
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError('Erro ao entrar com Google');
     }
   };
 
@@ -210,24 +166,6 @@ const Register: React.FC = () => {
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
         >
           {loading ? 'Criando conta...' : 'Cadastrar'}
-        </button>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-slate-900 px-2 text-slate-500">Ou continue com</span>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-3"
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-          Google
         </button>
 
         <p className="text-center text-slate-400 text-sm mt-6">

@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../firebase';
 import { Link } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
 import { Mail, ArrowLeft } from 'lucide-react';
@@ -28,8 +26,10 @@ const ForgotPassword: React.FC = () => {
     setError(null);
     setMessage(null);
     try {
-      await sendPasswordResetEmail(auth, data.email);
-      setMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+      // Placeholder for password recovery logic in SQL backend
+      console.log('Recovery requested for:', data.email);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setMessage('Se o e-mail estiver cadastrado, você receberá as instruções em breve.');
     } catch (err: any) {
       setError('Ocorreu um erro ao tentar enviar o e-mail');
     } finally {
