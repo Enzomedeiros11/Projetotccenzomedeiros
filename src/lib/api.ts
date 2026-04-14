@@ -38,6 +38,29 @@ export const api = {
     return this.handleResponse(res);
   },
 
+  async getClasses() {
+    const res = await fetch('/api/classes');
+    return this.handleResponse(res);
+  },
+
+  async createClass(data: { name: string; subject: string; grade: string }) {
+    const res = await fetch('/api/classes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(res);
+  },
+
+  async joinClass(code: string) {
+    const res = await fetch('/api/classes/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    return this.handleResponse(res);
+  },
+
   async logout() {
     const res = await fetch('/api/logout', { method: 'POST' });
     return this.handleResponse(res);

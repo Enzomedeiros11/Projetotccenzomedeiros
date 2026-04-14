@@ -18,9 +18,10 @@ const AlunoDashboard: React.FC = () => {
         return;
       }
       setProfile(user);
-      const classesData = await api.getMe().then(() => fetch('/api/classes').then(r => r.json()));
+      const classesData = await api.getClasses();
       setClasses(Array.isArray(classesData) ? classesData : []);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Fetch Error:', err);
       navigate('/login');
     } finally {
       setLoading(false);
@@ -34,6 +35,19 @@ const AlunoDashboard: React.FC = () => {
   const handleLogout = async () => {
     await api.logout();
     navigate('/login');
+  };
+
+  const handleJoinClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchCode.trim()) return;
+    
+    try {
+      await api.joinClass(searchCode);
+      setSearchCode('');
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao entrar na turma');
+    }
   };
 
   if (loading) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
@@ -84,7 +98,7 @@ const AlunoDashboard: React.FC = () => {
             <h1 className="text-3xl font-bold">Painel do Aluno</h1>
             <p className="text-slate-400 mt-1">Acompanhe suas aulas e desempenho</p>
           </div>
-          <div className="relative">
+          <form onSubmit={handleJoinClass} className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input 
               value={searchCode}
@@ -92,7 +106,7 @@ const AlunoDashboard: React.FC = () => {
               placeholder="Código da Turma"
               className="bg-white/5 border border-white/10 rounded-2xl py-3 pl-10 pr-4 focus:border-purple-500 outline-none transition-all w-64"
             />
-          </div>
+          </form>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

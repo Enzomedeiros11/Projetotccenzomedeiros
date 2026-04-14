@@ -19,9 +19,10 @@ const ProfessorDashboard: React.FC = () => {
         return;
       }
       setProfile(user);
-      const classesData = await api.getMe().then(() => fetch('/api/classes').then(r => r.json()));
+      const classesData = await api.getClasses();
       setClasses(Array.isArray(classesData) ? classesData : []);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Fetch Error:', err);
       navigate('/login');
     } finally {
       setLoading(false);
@@ -40,18 +41,12 @@ const ProfessorDashboard: React.FC = () => {
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/classes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newClass),
-      });
-      if (res.ok) {
-        setShowModal(false);
-        setNewClass({ name: '', subject: '', grade: '' });
-        fetchData();
-      }
-    } catch (err) {
-      console.error(err);
+      await api.createClass(newClass);
+      setShowModal(false);
+      setNewClass({ name: '', subject: '', grade: '' });
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao criar turma');
     }
   };
 
