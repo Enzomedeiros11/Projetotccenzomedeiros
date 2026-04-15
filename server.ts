@@ -211,6 +211,46 @@ async function startServer() {
     }
   });
 
+  app.get('/api/classes/:id', authenticateToken, (req: any, res) => {
+    try {
+      const classItem = db.prepare(`
+        SELECT c.*, u.name as teacher_name 
+        FROM classes c 
+        JOIN users u ON c.teacher_id = u.id 
+        WHERE c.id = ?
+      `).get(req.params.id);
+
+      if (!classItem) return res.status(404).json({ error: 'Turma não encontrada' });
+
+      // Check if user is authorized to view this class
+      const item = classItem as any;
+      if (req.user.role === 'teacher') {
+        if (item.teacher_id !== req.user.id) return res.status(403).json({ error: 'Não autorizado' });
+      } else {
+        const enrollment = db.prepare('SELECT 1 FROM enrollments WHERE student_id = ? AND class_id = ?').get(req.user.id, req.params.id);
+        if (!enrollment) return res.status(403).json({ error: 'Você não está matriculado nesta turma' });
+      }
+
+      res.json(classItem);
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao buscar detalhes da turma' });
+    }
+  });
+
+  app.get('/api/classes/:id/students', authenticateToken, (req: any, res) => {
+    try {
+      const students = db.prepare(`
+        SELECT u.id, u.name, u.email, u.grade, u.course
+        FROM users u
+        JOIN enrollments e ON u.id = e.student_id
+        WHERE e.class_id = ?
+      `).all(req.params.id);
+      res.json(students);
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao buscar alunos da turma' });
+    }
+  });
+
   app.post('/api/classes/join', authenticateToken, (req: any, res) => {
     if (req.user.role !== 'student') {
       return res.status(403).json({ error: 'Apenas alunos podem entrar em turmas' });
@@ -302,6 +342,21 @@ async function startServer() {
   });
 
   // Submissions Routes
+  app.get('/api/assignments/:assignmentId/submissions', authenticateToken, (req: any, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Apenas professores' });
+    try {
+      const submissions = db.prepare(`
+        SELECT s.*, u.name as student_name 
+        FROM submissions s 
+        JOIN users u ON s.student_id = u.id 
+        WHERE s.assignment_id = ?
+      `).all(req.params.assignmentId);
+      res.json(submissions);
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao buscar entregas' });
+    }
+  });
+
   app.post('/api/assignments/:assignmentId/submit', authenticateToken, (req: any, res) => {
     if (req.user.role !== 'student') return res.status(403).json({ error: 'Apenas alunos' });
     const { content, file_url } = req.body;
@@ -311,6 +366,17 @@ async function startServer() {
       res.json({ id: info.lastInsertRowid, message: 'Atividade entregue com sucesso!' });
     } catch (err: any) {
       res.status(500).json({ error: 'Erro ao entregar atividade' });
+    }
+  });
+
+  app.post('/api/submissions/:id/grade', authenticateToken, (req: any, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Apenas professores' });
+    const { grade, feedback } = req.body;
+    try {
+      db.prepare('UPDATE submissions SET grade = ?, feedback = ? WHERE id = ?').run(grade, feedback, req.params.id);
+      res.json({ message: 'Nota atribuída com sucesso!' });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao atribuir nota' });
     }
   });
 

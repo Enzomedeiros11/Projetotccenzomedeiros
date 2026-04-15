@@ -128,7 +128,12 @@ const ProfessorDashboard: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  <button className="text-blue-500 text-sm font-bold hover:underline">Ver Turma</button>
+                  <button 
+                    onClick={() => navigate(`/turma/${c.id}`)}
+                    className="text-blue-500 text-sm font-bold hover:underline"
+                  >
+                    Ver Turma
+                  </button>
                 </div>
               </div>
             ))

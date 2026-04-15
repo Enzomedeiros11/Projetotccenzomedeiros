@@ -21,6 +21,7 @@ import ForgotPassword from './components/ForgotPassword';
 // Pages
 import ProfessorDashboard from './pages/ProfessorDashboard';
 import AlunoDashboard from './pages/AlunoDashboard';
+import ClassDetail from './pages/ClassDetail';
 
 /**
  * Utilitário de Detecção de Ambiente
@@ -68,6 +69,7 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/professor" element={<ProfessorDashboard />} />
         <Route path="/aluno" element={<AlunoDashboard />} />
+        <Route path="/turma/:id" element={<ClassDetail />} />
         <Route path="/sitemap" element={<Sitemap />} />
 
         {/* Catch-all: Redireciona rotas inexistentes para a home */}

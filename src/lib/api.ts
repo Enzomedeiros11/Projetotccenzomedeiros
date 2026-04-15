@@ -49,6 +49,16 @@ export const api = {
     const res = await fetch('/api/classes');
     return this.handleResponse(res);
   },
+  
+  async getClass(id: string | number) {
+    const res = await fetch(`/api/classes/${id}`);
+    return this.handleResponse(res);
+  },
+
+  async getStudents(classId: string | number) {
+    const res = await fetch(`/api/classes/${classId}/students`);
+    return this.handleResponse(res);
+  },
 
   async createClass(data: { name: string; subject: string; grade: string }) {
     const res = await fetch('/api/classes', {
@@ -104,8 +114,22 @@ export const api = {
   },
 
   // Submissions
+  async getSubmissions(assignmentId: string | number) {
+    const res = await fetch(`/api/assignments/${assignmentId}/submissions`);
+    return this.handleResponse(res);
+  },
+
   async submitAssignment(assignmentId: string | number, data: any) {
     const res = await fetch(`/api/assignments/${assignmentId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(res);
+  },
+
+  async gradeSubmission(submissionId: string | number, data: { grade: number; feedback: string }) {
+    const res = await fetch(`/api/submissions/${submissionId}/grade`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

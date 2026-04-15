@@ -125,7 +125,12 @@ const AlunoDashboard: React.FC = () => {
                 <p className="text-slate-400 text-sm mb-4">{c.subject} • {c.grade}</p>
                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
                   <span className="text-xs text-slate-500">Professor: {c.teacher_name || 'Docente'}</span>
-                  <button className="text-purple-500 text-sm font-bold hover:underline">Entrar</button>
+                  <button 
+                    onClick={() => navigate(`/turma/${c.id}`)}
+                    className="text-purple-500 text-sm font-bold hover:underline"
+                  >
+                    Entrar
+                  </button>
                 </div>
               </div>
             ))
