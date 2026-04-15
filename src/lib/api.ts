@@ -10,7 +10,8 @@ export const api = {
     }
 
     if (!res.ok) {
-      throw new Error(data.error || data.message || 'Erro na requisição');
+      const errorMessage = data.error || data.message || `Erro na requisição (Status: ${res.status})`;
+      throw new Error(errorMessage);
     }
     return data;
   },

@@ -130,6 +130,8 @@ async function startServer() {
   app.post('/api/register', async (req, res) => {
     const { name, email, password, role, grade, course } = req.body;
     
+    console.log('Registration attempt:', { name, email, role });
+
     if (!name || !email || !password || !role) {
       return res.status(400).json({ error: 'Preencha todos os campos obrigatórios' });
     }
@@ -139,15 +141,17 @@ async function startServer() {
       const stmt = db.prepare('INSERT INTO users (name, email, password, role, grade, course) VALUES (?, ?, ?, ?, ?, ?)');
       const info = stmt.run(name, email, hashedPassword, role, grade, course);
       
+      console.log('User created with ID:', info.lastInsertRowid);
+
       const token = jwt.sign({ id: info.lastInsertRowid, email, role }, JWT_SECRET, { expiresIn: '7d' });
       res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
       res.json({ id: info.lastInsertRowid, name, email, role, grade, course });
     } catch (err: any) {
-      console.error('Register Error:', err);
-      if (err.message.includes('UNIQUE constraint failed')) {
+      console.error('Detailed Register Error:', err);
+      if (err.message && err.message.includes('UNIQUE constraint failed')) {
         return res.status(400).json({ error: 'Este e-mail já está em uso.' });
       }
-      res.status(500).json({ error: 'Erro interno ao criar conta.' });
+      res.status(500).json({ error: `Erro ao criar conta: ${err.message || 'Erro desconhecido'}` });
     }
   });
 
@@ -306,6 +310,12 @@ async function startServer() {
     } catch (err: any) {
       res.status(500).json({ error: 'Erro ao entregar atividade' });
     }
+  });
+
+  // Global Error Handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({ error: 'Erro interno no servidor', details: err.message });
   });
 
   // Vite middleware for development
