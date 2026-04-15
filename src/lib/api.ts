@@ -6,7 +6,13 @@ export const api = {
     if (contentType && contentType.includes('application/json')) {
       data = await res.json();
     } else {
-      data = { error: await res.text() };
+      const text = await res.text();
+      // If we got HTML instead of JSON, it's likely a 404 or redirect issue
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        data = { error: `O servidor retornou uma página HTML em vez de dados. Isso geralmente acontece quando a rota da API não é encontrada (404). Verifique se o servidor está rodando corretamente. (Status: ${res.status})` };
+      } else {
+        data = { error: text || `Erro desconhecido (Status: ${res.status})` };
+      }
     }
 
     if (!res.ok) {

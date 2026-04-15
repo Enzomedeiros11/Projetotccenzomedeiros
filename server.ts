@@ -1,6 +1,6 @@
 import express from 'express';
 import Database from 'better-sqlite3';
-import bcrypt from 'bcryptjs';
+import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -137,7 +137,9 @@ async function startServer() {
     }
 
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      console.log('Hashing password...');
+      const hashedPassword = await bcryptjs.hash(password, 10);
+      console.log('Password hashed successfully.');
       const stmt = db.prepare('INSERT INTO users (name, email, password, role, grade, course) VALUES (?, ?, ?, ?, ?, ?)');
       const info = stmt.run(name, email, hashedPassword, role, grade, course);
       
@@ -166,7 +168,7 @@ async function startServer() {
       const user: any = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
       if (!user) return res.status(400).json({ error: 'E-mail não encontrado.' });
 
-      const validPassword = await bcrypt.compare(password, user.password);
+      const validPassword = await bcryptjs.compare(password, user.password);
       if (!validPassword) return res.status(400).json({ error: 'Senha incorreta.' });
 
       const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
