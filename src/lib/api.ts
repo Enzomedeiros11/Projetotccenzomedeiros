@@ -1,139 +1,200 @@
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs, 
+  collection, 
+  query, 
+  where, 
+  addDoc, 
+  serverTimestamp,
+  orderBy,
+  updateDoc
+} from 'firebase/firestore';
+import { auth, db } from './firebase';
+
 export const api = {
-  async handleResponse(res: Response) {
-    const contentType = res.headers.get('content-type');
-    let data;
-    
-    if (contentType && contentType.includes('application/json')) {
-      data = await res.json();
-    } else {
-      const text = await res.text();
-      // If we got HTML instead of JSON, it's likely a 404 or redirect issue
-      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        data = { error: `O servidor retornou uma página HTML em vez de dados. Isso geralmente acontece quando a rota da API não é encontrada (404). Verifique se o servidor está rodando corretamente. (Status: ${res.status})` };
-      } else {
-        data = { error: text || `Erro desconhecido (Status: ${res.status})` };
-      }
-    }
-
-    if (!res.ok) {
-      const errorMessage = data.error || data.message || `Erro na requisição (Status: ${res.status})`;
-      throw new Error(errorMessage);
-    }
-    return data;
-  },
-
   async register(data: any) {
-    const res = await fetch('/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return this.handleResponse(res);
+    const { user: firebaseUser } = await createUserWithEmailAndPassword(auth, data.email, data.password);
+    
+    const userData = {
+      uid: firebaseUser.uid,
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      grade: data.grade,
+      course: data.course,
+      createdAt: serverTimestamp()
+    };
+
+    await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+    return userData;
   },
 
   async login(data: any) {
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+    const { user: firebaseUser } = await signInWithEmailAndPassword(auth, data.email, data.password);
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+    return userDoc.data();
+  },
+
+  async getMe(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        unsubscribe();
+        if (user) {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          resolve(userDoc.data());
+        } else {
+          reject(new Error('Não autenticado'));
+        }
+      });
     });
-    return this.handleResponse(res);
-  },
-
-  async getMe() {
-    const res = await fetch('/api/me');
-    return this.handleResponse(res);
-  },
-
-  async getClasses() {
-    const res = await fetch('/api/classes');
-    return this.handleResponse(res);
-  },
-  
-  async getClass(id: string | number) {
-    const res = await fetch(`/api/classes/${id}`);
-    return this.handleResponse(res);
-  },
-
-  async getStudents(classId: string | number) {
-    const res = await fetch(`/api/classes/${classId}/students`);
-    return this.handleResponse(res);
-  },
-
-  async createClass(data: { name: string; subject: string; grade: string }) {
-    const res = await fetch('/api/classes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return this.handleResponse(res);
-  },
-
-  async joinClass(code: string) {
-    const res = await fetch('/api/classes/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
-    });
-    return this.handleResponse(res);
   },
 
   async logout() {
-    const res = await fetch('/api/logout', { method: 'POST' });
-    return this.handleResponse(res);
+    await signOut(auth);
   },
 
-  // Assignments
-  async getAssignments(classId: string | number) {
-    const res = await fetch(`/api/classes/${classId}/assignments`);
-    return this.handleResponse(res);
+  async getClasses() {
+    const user = await this.getMe();
+    if (user.role === 'teacher') {
+      const q = query(collection(db, 'classes'), where('teacherId', '==', user.uid));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } else {
+      const q = query(collection(db, 'enrollments'), where('studentId', '==', user.uid));
+      const enrollmentsSnapshot = await getDocs(q);
+      const classIds = enrollmentsSnapshot.docs.map(doc => doc.data().classId);
+      
+      if (classIds.length === 0) return [];
+      
+      // Firestore 'in' query limit is 10, but let's assume small number for now
+      const classesSnapshot = await getDocs(query(collection(db, 'classes'), where('__name__', 'in', classIds)));
+      return classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
   },
 
-  async createAssignment(classId: string | number, data: any) {
-    const res = await fetch(`/api/classes/${classId}/assignments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+  async getClass(id: string) {
+    const docRef = doc(db, 'classes', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    }
+    throw new Error('Turma não encontrada');
+  },
+
+  async createClass(data: { name: string; subject: string; grade: string }) {
+    const user = await this.getMe();
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const classData = {
+      ...data,
+      code,
+      teacherId: user.uid,
+      teacherName: user.name,
+      createdAt: serverTimestamp()
+    };
+    const docRef = await addDoc(collection(db, 'classes'), classData);
+    return { id: docRef.id, ...classData };
+  },
+
+  async joinClass(code: string) {
+    const user = await this.getMe();
+    const q = query(collection(db, 'classes'), where('code', '==', code.toUpperCase()));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) throw new Error('Turma não encontrada com este código');
+    
+    const classId = snapshot.docs[0].id;
+    
+    // Check if already enrolled
+    const eq = query(collection(db, 'enrollments'), where('studentId', '==', user.uid), where('classId', '==', classId));
+    const esnap = await getDocs(eq);
+    if (!esnap.empty) throw new Error('Você já está matriculado nesta turma');
+
+    await addDoc(collection(db, 'enrollments'), {
+      studentId: user.uid,
+      classId,
+      enrolledAt: serverTimestamp()
     });
-    return this.handleResponse(res);
+    
+    return { message: 'Inscrito com sucesso' };
   },
 
-  // Materials
-  async getMaterials(classId: string | number) {
-    const res = await fetch(`/api/classes/${classId}/materials`);
-    return this.handleResponse(res);
+  async getStudents(classId: string) {
+    const q = query(collection(db, 'enrollments'), where('classId', '==', classId));
+    const snapshot = await getDocs(q);
+    const studentIds = snapshot.docs.map(doc => doc.data().studentId);
+    
+    if (studentIds.length === 0) return [];
+    
+    const studentsSnapshot = await getDocs(query(collection(db, 'users'), where('uid', 'in', studentIds)));
+    return studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  async createMaterial(classId: string | number, data: any) {
-    const res = await fetch(`/api/classes/${classId}/materials`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+  async getAssignments(classId: string) {
+    const q = query(collection(db, `classes/${classId}/assignments`), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  },
+
+  async createAssignment(classId: string, data: any) {
+    const docRef = await addDoc(collection(db, `classes/${classId}/assignments`), {
+      ...data,
+      classId,
+      createdAt: serverTimestamp()
     });
-    return this.handleResponse(res);
+    return { id: docRef.id, ...data };
   },
 
-  // Submissions
-  async getSubmissions(assignmentId: string | number) {
-    const res = await fetch(`/api/assignments/${assignmentId}/submissions`);
-    return this.handleResponse(res);
+  async getMaterials(classId: string) {
+    const q = query(collection(db, `classes/${classId}/materials`), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  async submitAssignment(assignmentId: string | number, data: any) {
-    const res = await fetch(`/api/assignments/${assignmentId}/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+  async createMaterial(classId: string, data: any) {
+    const docRef = await addDoc(collection(db, `classes/${classId}/materials`), {
+      ...data,
+      classId,
+      createdAt: serverTimestamp()
     });
-    return this.handleResponse(res);
+    return { id: docRef.id, ...data };
   },
 
-  async gradeSubmission(submissionId: string | number, data: { grade: number; feedback: string }) {
-    const res = await fetch(`/api/submissions/${submissionId}/grade`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+  async getSubmissions(assignmentId: string) {
+    const q = query(collection(db, 'submissions'), where('assignmentId', '==', assignmentId), orderBy('submittedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  },
+
+  async submitAssignment(assignmentId: string, data: any) {
+    const user = await this.getMe();
+    const submissionData = {
+      ...data,
+      assignmentId,
+      studentId: user.uid,
+      studentName: user.name,
+      submittedAt: serverTimestamp(),
+      grade: null,
+      feedback: null
+    };
+    const docRef = await addDoc(collection(db, 'submissions'), submissionData);
+    return { id: docRef.id, ...submissionData };
+  },
+
+  async gradeSubmission(submissionId: string, data: { grade: number; feedback: string }) {
+    const docRef = doc(db, 'submissions', submissionId);
+    await updateDoc(docRef, {
+      grade: data.grade,
+      feedback: data.feedback
     });
-    return this.handleResponse(res);
+    return { id: submissionId, ...data };
   }
 };

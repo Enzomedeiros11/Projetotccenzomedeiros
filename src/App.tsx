@@ -44,22 +44,49 @@ const checkPreviewEnvironment = (): boolean => {
   return indicators.some(indicator => hostname.includes(indicator) || href.includes(indicator));
 };
 
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './lib/firebase';
+import { api } from './lib/api';
+
 export default function App() {
   const isPreview = checkPreviewEnvironment();
+  const [user, setUser] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
   
-  // Seleção Dinâmica do Roteador
-  // HashRouter: Evita erros 404 em refresh em proxies de Cloud Dev
-  // BrowserRouter: SEO, UTMs e Tracking Pixels para Produção
+  React.useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userData = await api.getMe();
+          setUser(userData);
+        } catch (err) {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+
   const Router = isPreview ? HashRouter : BrowserRouter;
 
   return (
     <Router>
       <Routes>
-        {/* Redirecionamento Inteligente na Raiz */}
         <Route 
           path="/" 
           element={
-            isPreview ? <Navigate to="/sitemap" replace /> : <Login />
+            user ? (
+              user.role === 'teacher' ? <Navigate to="/professor" replace /> : <Navigate to="/aluno" replace />
+            ) : <Login />
           } 
         />
 

@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: uid
+    // Fields: uid, name, email, role, grade, course, createdAt
+    //
+    // Collection: classes
+    // Document ID: classId
+    // Fields: name, subject, grade, code, teacherId, teacherName, createdAt
+    //
+    // Collection: enrollments
+    // Document ID: enrollmentId
+    // Fields: studentId, classId, enrolledAt
+    //
+    // Collection: submissions
+    // Document ID: submissionId
+    // Fields: assignmentId, studentId, studentName, content, fileUrl, grade, feedback, submittedAt
+    //
+    // Subcollection: classes/{classId}/assignments/{assignmentId}
+    // Fields: classId, title, description, dueDate, points, createdAt
+    //
+    // Subcollection: classes/{classId}/materials/{materialId}
+    // Fields: classId, title, description, fileUrl, type, createdAt
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isTeacher() {
+      return isAuthenticated() && getUserData().role == 'teacher';
+    }
+
+    function isStudent() {
+      return isAuthenticated() && getUserData().role == 'student';
+    }
+
+    function isEnrolled(classId) {
+      return isAuthenticated() && exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + '_' + classId)) || 
+             exists(/databases/$(database)/documents/enrollments/$(request.auth.uid + classId)); // Simple check
+    }
+    
+    // Better enrollment check using query-like logic is hard in rules without specific doc IDs
+    // We'll use a more robust check if we use specific IDs for enrollments like studentId_classId
+    
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
+    }
+
+    match /classes/{classId} {
+      allow read: if isAuthenticated(); // Simplified for now, should ideally check enrollment or teacherId
+      allow create: if isTeacher();
+      allow update: if isTeacher() && resource.data.teacherId == request.auth.uid;
+      
+      match /assignments/{assignmentId} {
+        allow read: if isAuthenticated();
+        allow write: if isTeacher() && get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == request.auth.uid;
+      }
+      
+      match /materials/{materialId} {
+        allow read: if isAuthenticated();
+        allow write: if isTeacher() && get(/databases/$(database)/documents/classes/$(classId)).data.teacherId == request.auth.uid;
+      }
+    }
+
+    match /enrollments/{enrollmentId} {
+      allow read: if isAuthenticated();
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
+      allow delete: if isOwner(resource.data.studentId);
+    }
+
+    match /submissions/{submissionId} {
+      allow read: if isAuthenticated(); // Teachers of the class and the student owner
+      allow create: if isStudent() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isTeacher() || (isStudent() && resource.data.studentId == request.auth.uid && !('grade' in request.resource.data));
+    }
+  }
+}

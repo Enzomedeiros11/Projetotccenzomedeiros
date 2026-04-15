@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["teacher", "student"] },
+        "grade": { "type": "string" },
+        "course": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Class": {
+      "title": "Class",
+      "description": "A school class/turma",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "subject": { "type": "string" },
+        "grade": { "type": "string" },
+        "code": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "subject", "grade", "code", "teacherId"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "An activity or homework",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "points": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["classId", "title", "points"]
+    },
+    "Material": {
+      "title": "Material",
+      "description": "Educational material shared in the mural",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "type": { "type": "string", "enum": ["file", "link", "video"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["classId", "title", "type"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "A student's answer to an assignment",
+      "type": "object",
+      "properties": {
+        "assignmentId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "content": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "grade": { "type": "number" },
+        "feedback": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["assignmentId", "studentId", "content"]
+    },
+    "Enrollment": {
+      "title": "Enrollment",
+      "description": "Mapping between student and class",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "classId": { "type": "string" },
+        "enrolledAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "classId"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/classes/{classId}": {
+      "schema": "Class",
+      "description": "Class information"
+    },
+    "/classes/{classId}/assignments/{assignmentId}": {
+      "schema": "Assignment",
+      "description": "Assignments for a class"
+    },
+    "/classes/{classId}/materials/{materialId}": {
+      "schema": "Material",
+      "description": "Materials for a class"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Submissions for assignments"
+    },
+    "/enrollments/{enrollmentId}": {
+      "schema": "Enrollment",
+      "description": "Student enrollments in classes"
+    }
+  }
+}

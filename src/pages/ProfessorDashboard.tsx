@@ -53,98 +53,99 @@ const ProfessorDashboard: React.FC = () => {
   if (loading) return <div className="min-h-screen bg-[#0f172a] flex items-center justify-center"><div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white font-sans flex">
+    <div className="min-h-screen bg-[#020617] text-white font-sans flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900/50 border-r border-white/10 p-6 flex flex-col">
-        <div className="flex items-center gap-3 mb-10">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <GraduationCap size={24} />
+      <aside className="w-72 bg-[#020617] border-r border-white/5 p-8 flex flex-col z-20">
+        <div className="flex items-center gap-3 mb-12">
+          <div className="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-600/20">
+            <GraduationCap size={24} className="text-white" />
           </div>
-          <span className="font-bold text-xl tracking-tight">EduConnect</span>
+          <span className="font-display font-bold text-2xl tracking-tight">EduConnect</span>
         </div>
 
         <nav className="flex-1 space-y-2">
-          <button className="w-full flex items-center gap-3 p-3 bg-blue-600 rounded-xl text-sm font-semibold">
-            <Users size={18} /> Turmas
+          <button className="w-full flex items-center gap-3 p-4 bg-blue-600/10 text-blue-500 rounded-2xl text-sm font-bold border border-blue-500/20">
+            <Users size={20} /> Turmas
           </button>
-          <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white transition-all">
-            <ClipboardList size={18} /> Atividades
+          <button className="w-full flex items-center gap-3 p-4 hover:bg-white/5 rounded-2xl text-sm font-bold text-slate-400 hover:text-white transition-all">
+            <ClipboardList size={20} /> Atividades
           </button>
-          <button className="w-full flex items-center gap-3 p-3 hover:bg-white/5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white transition-all">
-            <BookOpen size={18} /> Materiais
+          <button className="w-full flex items-center gap-3 p-4 hover:bg-white/5 rounded-2xl text-sm font-bold text-slate-400 hover:text-white transition-all">
+            <BookOpen size={20} /> Materiais
           </button>
         </nav>
 
-        <div className="pt-6 border-t border-white/10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center text-blue-500 font-bold">
+        <div className="pt-8 border-t border-white/5">
+          <div className="flex items-center gap-4 mb-6 p-2">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-600/30 flex items-center justify-center text-blue-500 font-display font-bold text-xl">
               {profile?.name?.[0]}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-semibold truncate">{profile?.name}</p>
-              <p className="text-xs text-slate-500">Professor</p>
+              <p className="text-sm font-bold truncate text-white">{profile?.name}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Professor</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 p-3 hover:bg-red-500/10 rounded-xl text-sm font-semibold text-red-400 transition-all">
-            <LogOut size={18} /> Sair
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 p-4 hover:bg-red-500/10 rounded-2xl text-sm font-bold text-red-400 transition-all">
+            <LogOut size={20} /> Sair da Conta
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
-        <header className="flex items-center justify-between mb-8">
+      <main className="flex-1 p-12 overflow-y-auto bg-[#020617]">
+        <header className="flex items-end justify-between mb-12">
           <div>
-            <h1 className="text-3xl font-bold">Painel do Professor</h1>
-            <p className="text-slate-400 mt-1">Gerencie suas turmas e atividades</p>
+            <h1 className="text-5xl font-display font-bold tracking-tight mb-2">Painel do Professor</h1>
+            <p className="text-slate-400 text-lg font-light">Gerencie suas turmas e acompanhe o progresso dos alunos.</p>
           </div>
           <button 
             onClick={() => setShowModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-blue-600/20"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl flex items-center gap-3 font-bold transition-all shadow-2xl shadow-blue-600/30 active:scale-[0.98]"
           >
-            <Plus size={20} /> Criar Nova Turma
+            <Plus size={22} /> Criar Nova Turma
           </button>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {classes.length > 0 ? (
             classes.map((c) => (
-              <div key={c.id} className="bg-slate-900/40 border border-white/10 p-6 rounded-[2rem] hover:border-blue-500/50 transition-all group">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500">
-                    <Users size={24} />
+              <div key={c.id} className="bg-white/[0.02] border border-white/5 p-8 rounded-[2.5rem] hover:border-blue-500/30 hover:bg-white/[0.04] transition-all group relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 blur-[60px] rounded-full"></div>
+                <div className="flex justify-between items-start mb-6 relative z-10">
+                  <div className="p-4 bg-blue-600/10 rounded-2xl text-blue-500">
+                    <Users size={28} />
                   </div>
-                  <span className="text-[10px] font-bold bg-white/5 px-2 py-1 rounded-full text-slate-400 uppercase tracking-widest">
+                  <span className="text-[10px] font-black bg-white/5 px-3 py-1.5 rounded-full text-slate-400 uppercase tracking-[0.2em] border border-white/5">
                     {c.code}
                   </span>
                 </div>
-                <h3 className="text-xl font-bold mb-1">{c.name}</h3>
-                <p className="text-slate-400 text-sm mb-4">{c.subject} • {c.grade}</p>
-                <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                  <div className="flex -space-x-2">
+                <h3 className="text-2xl font-display font-bold mb-2 group-hover:text-blue-400 transition-colors">{c.name}</h3>
+                <p className="text-slate-400 font-medium mb-8">{c.subject} • {c.grade}</p>
+                <div className="flex items-center justify-between pt-6 border-t border-white/5 relative z-10">
+                  <div className="flex -space-x-3">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-[#0f172a] flex items-center justify-center text-[10px] text-slate-500">
+                      <div key={i} className="w-10 h-10 rounded-xl bg-slate-800 border-2 border-[#020617] flex items-center justify-center text-[10px] text-slate-500 font-black">
                         ?
                       </div>
                     ))}
                   </div>
                   <button 
                     onClick={() => navigate(`/turma/${c.id}`)}
-                    className="text-blue-500 text-sm font-bold hover:underline"
+                    className="bg-white/5 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all border border-white/5 hover:border-blue-600 hover:shadow-lg hover:shadow-blue-600/20"
                   >
-                    Ver Turma
+                    Gerenciar
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="col-span-full bg-slate-900/40 border border-white/10 p-12 rounded-[2rem] text-center border-dashed">
-              <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users size={32} className="text-slate-600" />
+            <div className="col-span-full bg-white/[0.02] border border-white/5 p-20 rounded-[3rem] text-center border-dashed">
+              <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Users size={40} className="text-slate-600" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Nenhuma turma ainda</h3>
-              <p className="text-slate-400 text-sm mb-6">Crie sua primeira turma para começar a gerenciar seus alunos.</p>
-              <button onClick={() => setShowModal(true)} className="text-blue-500 font-bold hover:underline">Criar agora</button>
+              <h3 className="text-2xl font-display font-bold mb-3">Nenhuma turma encontrada</h3>
+              <p className="text-slate-400 text-lg mb-8 max-w-md mx-auto">Crie sua primeira turma para começar a organizar seus materiais e atividades.</p>
+              <button onClick={() => setShowModal(true)} className="text-blue-500 font-bold text-lg hover:text-blue-400 transition-colors">Começar agora →</button>
             </div>
           )}
         </div>

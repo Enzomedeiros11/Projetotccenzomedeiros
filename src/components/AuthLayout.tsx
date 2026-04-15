@@ -78,7 +78,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
           {/* Vibrant Overlays */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-slate-900/80"></div>
           <div className="absolute inset-0 bg-[#020617]/20 backdrop-blur-[1px]"></div>
-        </div>
+        </motion.div>
 
         {/* Floating Elements */}
         <motion.div 
