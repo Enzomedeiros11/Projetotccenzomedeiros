@@ -64,6 +64,41 @@ async function startServer() {
       FOREIGN KEY (student_id) REFERENCES users (id),
       FOREIGN KEY (class_id) REFERENCES classes (id)
     );
+
+    CREATE TABLE IF NOT EXISTS assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date DATETIME,
+      points INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (class_id) REFERENCES classes (id)
+    );
+
+    CREATE TABLE IF NOT EXISTS submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      content TEXT,
+      file_url TEXT,
+      grade REAL,
+      feedback TEXT,
+      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (assignment_id) REFERENCES assignments (id),
+      FOREIGN KEY (student_id) REFERENCES users (id)
+    );
+
+    CREATE TABLE IF NOT EXISTS materials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      file_url TEXT,
+      type TEXT, -- 'link', 'file', 'video'
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (class_id) REFERENCES classes (id)
+    );
   `);
 
   console.log('Database tables initialized.');
@@ -214,6 +249,63 @@ async function startServer() {
   app.post('/api/logout', (req, res) => {
     res.clearCookie('token');
     res.json({ message: 'Logout realizado' });
+  });
+
+  // Assignments Routes
+  app.get('/api/classes/:classId/assignments', authenticateToken, (req: any, res) => {
+    try {
+      const assignments = db.prepare('SELECT * FROM assignments WHERE class_id = ? ORDER BY created_at DESC').all(req.params.classId);
+      res.json(assignments);
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao buscar atividades' });
+    }
+  });
+
+  app.post('/api/classes/:classId/assignments', authenticateToken, (req: any, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Apenas professores' });
+    const { title, description, due_date, points } = req.body;
+    try {
+      const stmt = db.prepare('INSERT INTO assignments (class_id, title, description, due_date, points) VALUES (?, ?, ?, ?, ?)');
+      const info = stmt.run(req.params.classId, title, description, due_date, points);
+      res.json({ id: info.lastInsertRowid, title, description, due_date, points });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao criar atividade' });
+    }
+  });
+
+  // Materials Routes
+  app.get('/api/classes/:classId/materials', authenticateToken, (req: any, res) => {
+    try {
+      const materials = db.prepare('SELECT * FROM materials WHERE class_id = ? ORDER BY created_at DESC').all(req.params.classId);
+      res.json(materials);
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao buscar materiais' });
+    }
+  });
+
+  app.post('/api/classes/:classId/materials', authenticateToken, (req: any, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Apenas professores' });
+    const { title, description, file_url, type } = req.body;
+    try {
+      const stmt = db.prepare('INSERT INTO materials (class_id, title, description, file_url, type) VALUES (?, ?, ?, ?, ?)');
+      const info = stmt.run(req.params.classId, title, description, file_url, type);
+      res.json({ id: info.lastInsertRowid, title, description, file_url, type });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao adicionar material' });
+    }
+  });
+
+  // Submissions Routes
+  app.post('/api/assignments/:assignmentId/submit', authenticateToken, (req: any, res) => {
+    if (req.user.role !== 'student') return res.status(403).json({ error: 'Apenas alunos' });
+    const { content, file_url } = req.body;
+    try {
+      const stmt = db.prepare('INSERT INTO submissions (assignment_id, student_id, content, file_url) VALUES (?, ?, ?, ?)');
+      const info = stmt.run(req.params.assignmentId, req.user.id, content, file_url);
+      res.json({ id: info.lastInsertRowid, message: 'Atividade entregue com sucesso!' });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao entregar atividade' });
+    }
   });
 
   // Vite middleware for development

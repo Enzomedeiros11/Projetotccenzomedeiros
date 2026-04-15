@@ -64,5 +64,45 @@ export const api = {
   async logout() {
     const res = await fetch('/api/logout', { method: 'POST' });
     return this.handleResponse(res);
+  },
+
+  // Assignments
+  async getAssignments(classId: string | number) {
+    const res = await fetch(`/api/classes/${classId}/assignments`);
+    return this.handleResponse(res);
+  },
+
+  async createAssignment(classId: string | number, data: any) {
+    const res = await fetch(`/api/classes/${classId}/assignments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(res);
+  },
+
+  // Materials
+  async getMaterials(classId: string | number) {
+    const res = await fetch(`/api/classes/${classId}/materials`);
+    return this.handleResponse(res);
+  },
+
+  async createMaterial(classId: string | number, data: any) {
+    const res = await fetch(`/api/classes/${classId}/materials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(res);
+  },
+
+  // Submissions
+  async submitAssignment(assignmentId: string | number, data: any) {
+    const res = await fetch(`/api/assignments/${assignmentId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(res);
   }
 };
